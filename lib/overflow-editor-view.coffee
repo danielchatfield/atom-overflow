@@ -1,67 +1,72 @@
-{View} = require 'atom'
+{CompositeDisposable} = require 'atom'
 OverflowView = require './overflow-view'
+OverflowTask = require './overflow-task'
 
 module.exports =
-class OverflowEditorView extends View
-
+class OverflowEditorView
   @content: ->
     @div class: 'overflow-wrapper'
 
-  initialize: (@editorView) ->
+  constructor: (@editor) ->
+    @disposables = new CompositeDisposable
     @views = []
+    @task = new OverflowTask()
 
-    @subscribe @editorView, 'editor:path-changed', =>
+    @disposables.add @editor.onDidChangePath =>
       @subscribeToBuffer()
 
-    @subscribe atom.config.observe 'overflow.column', callNow: false, =>
+    @disposables.add @editor.onDidChangeGrammar =>
+      @subscribeToBuffer()
+
+    @disposables.add atom.config.onDidChange 'editor.fontSize', =>
+      @subscribeToBuffer()
+
+    @disposables.add atom.config.onDidChange 'overflow.grammars', =>
       @subscribeToBuffer()
 
     @subscribeToBuffer()
 
-  beforeRemove: ->
+    @disposables.add @editor.onDidDestroy(@destroy.bind(this))
+
+  destroy: ->
     @unsubscribeFromBuffer()
+    @disposables.dispose()
+    @task.terminate()
 
   unsubscribeFromBuffer: ->
     @destroyViews()
 
     if @buffer?
-      @unsubscribe @buffer
+      @bufferDisposable.dispose()
       @buffer = null
 
   subscribeToBuffer: ->
     @unsubscribeFromBuffer()
 
-    @buffer = @editorView.getEditor().getBuffer()
-
-    @subscribe @buffer, 'contents-modified', =>
+    if @overflowCurrentGrammar()
+      @buffer = @editor.getBuffer()
+      @bufferDisposable = @buffer.onDidStopChanging => @updateOverflows()
       @updateOverflows()
 
-    @updateOverflows()
+  overflowCurrentGrammar: ->
+    grammar = @editor.getGrammar().scopeName
+    return true
 
   destroyViews: ->
     while view = @views.shift()
       view.destroy()
 
-  updateOverflows: ->
-    @destroyViews()
-
-    overflows = @findOverflows()
+  addViews: (overflows) ->
     for overflow in overflows
-      view = new OverflowView(overflow, @editorView)
-      @views.push view
-      @append view
+      view = new OverflowView(overflow, @editor)
+      @views.push(view)
 
-  findOverflows: ->
-    column = atom.config.get('overflow.column')
-    text = @buffer.getText()
-    overflows = []
-    row = 0
-    for line in text.split '\n'
-      if line.length >= column
-        overflows.push [row, line.length]
-      row++
-    overflows
-
-  destroy: ->
-    @unsubscribeFromBuffer()
-    @detach()
+  updateOverflows: ->
+    # Task::start can throw errors atom/atom#3326
+    maxLineLength = atom.config.get('editor.preferredLineLength')
+    try
+      @task.start @buffer.getText(), maxLineLength, (overflows) =>
+        @destroyViews()
+        @addViews(overflows) if @buffer?
+    catch error
+      console.warn('Error starting overflow task', error.stack ? error)

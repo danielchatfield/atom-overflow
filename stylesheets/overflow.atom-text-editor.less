@@ -1,0 +1,16 @@
+@import 'variables';
+
+.highlight-overflow .region {
+  background-color: @red-color;
+  color: white;
+  -webkit-animation-name: overflow-blinker;
+  -webkit-animation-duration: 1s;
+  -webkit-animation-timing-function: linear;
+  -webkit-animation-iteration-count: infinite;
+}
+
+@-webkit-keyframes overflow-blinker {
+    0% { opacity: 1.0; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1.0; }
+}
