@@ -45,7 +45,7 @@ class OverflowEditorView
 
     if @overflowCurrentGrammar()
       @buffer = @editor.getBuffer()
-      @bufferDisposable = @buffer.onDidStopChanging => @updateOverflows()
+      @bufferDisposable = @buffer.onDidChange => @updateOverflows()
       @updateOverflows()
 
   overflowCurrentGrammar: ->
