@@ -2,7 +2,6 @@ OverflowEditorView = null
 
 module.exports =
   activate: ->
-    console.log('activate');
     @disposable = atom.workspace.observeTextEditors(addViewToEditor)
 
   deactivate: ->
