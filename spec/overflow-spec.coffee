@@ -56,8 +56,17 @@ describe "Overflow", ->
       waitsFor ->
         editor.getHighlightDecorations(class: 'highlight-overflow').length > 0
 
-      waitsForPromise ->
-        atom.packages.deactivatePackage('overflow')
-
       runs ->
-        expect(editor.getMarkers().length).toBe 0
+        pack = null
+
+        if atom.packages.isPackageLoaded('overflow')
+          pack = atom.packages.getLoadedPackage('overflow')
+        else
+          pack = atom.packages.getLoadedPackage('atom-overflow')
+
+        pack.deactivate()
+        delete atom.packages.activePackages[pack.name]
+        atom.packages.emitter.emit 'did-deactivate-package', pack
+
+        decs = editor.getHighlightDecorations(class: 'highlight-overflow')
+        expect(decs.length).toBe 0

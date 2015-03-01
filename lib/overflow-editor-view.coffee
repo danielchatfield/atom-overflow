@@ -36,9 +36,8 @@ class OverflowEditorView
   unsubscribeFromBuffer: ->
     @destroyViews()
 
-    if @buffer?
+    if @bufferDisposable?
       @bufferDisposable.dispose()
-      @buffer = null
 
   subscribeToBuffer: ->
     @unsubscribeFromBuffer()
