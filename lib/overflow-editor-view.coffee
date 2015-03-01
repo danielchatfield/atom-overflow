@@ -61,9 +61,13 @@ class OverflowEditorView
       view = new OverflowView(overflow, @editor)
       @views.push(view)
 
+  getPreferredLineLength: ->
+    atom.config.get('editor.preferredLineLength',
+      scope: @editor.getRootScopeDescriptor())
+
   updateOverflows: ->
     # Task::start can throw errors atom/atom#3326
-    maxLineLength = atom.config.get('editor.preferredLineLength')
+    maxLineLength = @getPreferredLineLength()
     try
       @task.start @buffer.getText(), maxLineLength, (overflows) =>
         @destroyViews()
