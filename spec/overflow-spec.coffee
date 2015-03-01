@@ -48,3 +48,16 @@ describe "Overflow", ->
       runs ->
         editor.destroy()
         expect(editor.getMarkers().length).toBe 0
+
+  describe "when the package is disabled", ->
+    it "destroys all overflow markers", ->
+      editor.setText('this is a test')
+
+      waitsFor ->
+        editor.getHighlightDecorations(class: 'highlight-overflow').length > 0
+
+      waitsForPromise ->
+        atom.packages.deactivatePackage('overflow')
+
+      runs ->
+        expect(editor.getMarkers().length).toBe 0
